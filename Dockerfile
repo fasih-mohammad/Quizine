@@ -1,17 +1,23 @@
-FROM python:3.11.2  # Choose the appropriate Python version
+# Use an official Python image with a version compatible with your app
+FROM python:3.9-slim
 
-# Install Rust build tools and other dependencies
-RUN apt-get update && \
-    apt-get install -y cargo && \
-    rm -rf /var/lib/apt/lists/*  # Clean up to reduce image size
+# Install system dependencies (including cargo)
+RUN apt-get update && apt-get install -y \
+    cargo \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app  # Set the working directory
+# Set the working directory
+WORKDIR /app
 
-# Copy your application code to the container
+# Copy the application files to the container
 COPY . .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Command to run your application
-CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:8000"]
+# Expose the port your Flask app will run on
+EXPOSE 5000
+
+# Set the default command to run your Flask app
+CMD ["flask", "run", "--host=0.0.0.0", "--port=5000"]
