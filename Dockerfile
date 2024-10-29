@@ -1,5 +1,5 @@
 # Use a Python image with system-level build tools
-FROM python:3.9-slim
+FROM python:3.11.2
 
 # Install system dependencies, including cargo and build tools
 RUN apt-get update && \
