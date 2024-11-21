@@ -3,66 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Generated MCQs</title>
+    <title>Quizine - Generated MCQs</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <style>
-
-        .container {
-            text-align: left;
-            margin-top: 5%;
+        body {
+            background-color: #f8f9fa;
         }
-        .card-body {
-            text-align: left;
+        .card {
+            margin-bottom: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
-        /* Hide the correct answers initially */
+        .btn-primary {
+            margin-bottom: 20px;
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+            border-color: #dc3545;
+        }
+        .logout-container {
+            text-align: right;
+            margin-bottom: 20px;
+        }
         .correct-answer {
             display: none;
+            color: green;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
-    <!-- Start of content -->
-    <h1 class="mt-4 text-center">Generated MCQs</h1>
-    <div class="container" id="mcqs-container">
-        {% for index, mcq in mcqs %}
-            <div class="card mb-3">
-                <div class="card-body">
-                    <h5 class="card-title">Q{{ index }}: {{ mcq[0] }}?</h5>
-                    <form>
-                        {% set options = ['A', 'B', 'C', 'D'] %}
-                        {% set num_choices = mcq[1]|length %}
-                        {% for choice_index in range(num_choices) %}
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="answer{{ index }}" id="choice{{ index }}{{ choice_index }}" value="{{ choice_index }}">
-                                <label class="form-check-label" for="choice{{ index }}{{ choice_index }}">
-                                    {{ options[choice_index] }}: {{ mcq[1][choice_index] }}
-                                </label>
-                            </div>
-                        {% endfor %}
-                    </form>
-                    <!-- Display the correct answer with a class -->
-                    <small class="text-muted correct-answer">Correct Answer: {{ mcq[2] }}</small>
-                </div>
-            </div>
-        {% endfor %}
-        <!-- Button to show results -->
-        <button id="show-results-btn" class="btn btn-primary">Show Results</button>
+    <div class="logout-container">
+        <a href="/logout" class="btn btn-danger">Logout</a>
     </div>
-    <!-- End of content -->
-
-    <!-- JavaScript to handle showing results -->
-<script>
-    document.getElementById('show-results-btn').addEventListener('click', function() {
-        // Get all elements with the 'correct-answer' class
-        var correctAnswers = document.getElementsByClassName('correct-answer');
-        var correctCount = 0;
-        // Loop through each element and display it
-        for (var i = 0; i < correctAnswers.length; i++) {
-            correctAnswers[i].style.display = 'block';
-        }
-        // Hide the button after showing results
-        this.style.display = 'none';
-    });
-</script>
+    <div class="container">
+        <h1 class="text-center">Generated MCQs</h1>
+        <p class="text-center">Here are the MCQs generated from your input.</p>
+        <div id="mcqs-container">
+            {% for index, mcq in mcqs %}
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Q{{ index }}: {{ mcq[0] }}?</h5>
+                        <form>
+                            {% set options = ['A', 'B', 'C', 'D'] %}
+                            {% set num_choices = mcq[1]|length %}
+                            {% for choice_index in range(num_choices) %}
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="answer{{ index }}" id="choice{{ index }}{{ choice_index }}" value="{{ choice_index }}">
+                                    <label class="form-check-label" for="choice{{ index }}{{ choice_index }}">
+                                        {{ options[choice_index] }}: {{ mcq[1][choice_index] }}
+                                    </label>
+                                </div>
+                            {% endfor %}
+                        </form>
+                        <small class="text-muted correct-answer">Correct Answer: {{ mcq[2] }}</small>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        <div class="text-center">
+            <button id="show-results-btn" class="btn btn-primary">Show Correct Answers</button>
+        </div>
+    </div>
+    <script>
+        document.getElementById('show-results-btn').addEventListener('click', function () {
+            var correctAnswers = document.getElementsByClassName('correct-answer');
+            for (var i = 0; i < correctAnswers.length; i++) {
+                correctAnswers[i].style.display = 'block';
+            }
+            this.style.display = 'none'; // Hide the button
+        });
+    </script>
 </body>
 </html>

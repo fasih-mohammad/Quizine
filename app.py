@@ -4,19 +4,36 @@
 # pip install spacy
 # pip install PyPDF2
 
-from flask import Flask, render_template, request, make_response
+from flask import Flask, render_template, request, redirect, url_for, flash, session
 from flask_bootstrap import Bootstrap
+from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash, check_password_hash
 import spacy
 from collections import Counter
 import random
 import PyPDF2
 from PyPDF2 import PdfReader, PdfWriter  # Import PdfReader
+from flask_migrate import Migrate
+
+# After db initialization
+# migrate = Migrate(app, db)
+
 
 app = Flask(__name__)
+app.secret_key = '56c020f689a7ae83514569aceb2a2b08'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 Bootstrap(app)
+db = SQLAlchemy(app)
 
 # Load English tokenizer, tagger, parser, NER, and word vectors
 nlp = spacy.load("en_core_web_sm")
+
+
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50), unique=True, nullable=False)
+    password = db.Column(db.String(255), nullable=False)
 
 
 def generate_mcqs(text, num_questions=5):
@@ -85,36 +102,6 @@ def generate_mcqs(text, num_questions=5):
     return mcqs
 
 
-@app.route('/', methods=['GET', 'POST'])
-def index():
-    if request.method == 'POST':
-        text = ""
-
-        # Check if files were uploaded
-        if 'files[]' in request.files:
-            files = request.files.getlist('files[]')
-            for file in files:
-                if file.filename.endswith('.pdf'):
-                    # Process PDF file
-                    text += process_pdf(file)
-                elif file.filename.endswith('.txt'):
-                    # Process text file
-                    text += file.read().decode('utf-8')
-        else:
-            # Process manual input
-            text = request.form['text']
-
-        # Get the selected number of questions from the dropdown menu
-        num_questions = int(request.form['num_questions'])
-
-        mcqs = generate_mcqs(text, num_questions=num_questions)  # Pass the selected number of questions
-        # Ensure each MCQ is formatted correctly as (question_stem, answer_choices, correct_answer)
-        mcqs_with_index = [(i + 1, mcq) for i, mcq in enumerate(mcqs)]
-        return render_template('mcqs.html', mcqs=mcqs_with_index)
-
-    return render_template('index.html')
-
-
 def process_pdf(file):
     # Initialize an empty string to store the extracted text
     text = ""
@@ -132,5 +119,81 @@ def process_pdf(file):
     return text
 
 
-if __name__ == '__main__':
+# Routes
+@app.route('/')
+def home():
+    return render_template('index.html')
+
+
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
+
+        if User.query.filter_by(username=username).first():
+            flash('Username already exists', 'danger')
+            return redirect(url_for('signup'))
+
+        new_user = User(username=username, password=hashed_password)
+        db.session.add(new_user)
+        db.session.commit()
+        flash('Signup successful! Please login.', 'success')
+        return redirect(url_for('login'))
+
+    return render_template('signup.html')
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        user = User.query.filter_by(username=username).first()
+
+        if user and check_password_hash(user.password, password):
+            session['user_id'] = user.id
+            session['username'] = username
+            flash('Login successful!', 'success')
+            return redirect(url_for('home'))
+        else:
+            flash('Invalid credentials', 'danger')
+            return redirect(url_for('login'))
+    return render_template('login.html')
+
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    flash('You have been logged out.', 'info')
+    return redirect(url_for('home'))
+
+
+@app.route('/generate', methods=['GET', 'POST'])
+def generate():
+    if 'username' not in session:
+        flash('Please login to access this page.', 'warning')
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        text = ""
+        if 'files[]' in request.files:
+            files = request.files.getlist('files[]')
+            for file in files:
+                if file.filename.endswith('.pdf'):
+                    text += process_pdf(file)
+                elif file.filename.endswith('.txt'):
+                    text += file.read().decode('utf-8')
+
+        num_questions = int(request.form['num_questions'])
+        mcqs = generate_mcqs(text, num_questions=num_questions)
+        mcqs_with_index = [(i + 1, mcq) for i, mcq in enumerate(mcqs)]
+        return render_template('mcqs.html', mcqs=mcqs_with_index)
+
+    return render_template('index.html')
+
+if __name__ == "__main__":
+    with app.app_context():
+        db.create_all()  # Creates all tables
     app.run(debug=True)
