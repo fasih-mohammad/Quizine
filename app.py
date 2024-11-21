@@ -13,10 +13,6 @@ from collections import Counter
 import random
 import PyPDF2
 from PyPDF2 import PdfReader, PdfWriter  # Import PdfReader
-from flask_migrate import Migrate
-
-# After db initialization
-# migrate = Migrate(app, db)
 
 
 app = Flask(__name__)
